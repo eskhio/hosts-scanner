@@ -33,6 +33,42 @@ const HOST = new URL(BASE).hostname;
 const ROOT_DOMAIN = HOST.replace(/^www\./, "");
 const HOSTS = new Set([HOST]);
 
+function progress(message: string): void {
+  console.log(`\n${message}`);
+}
+
+async function withProgress<T>(label: string, task: () => Promise<T>): Promise<T> {
+  const started = Date.now();
+  let frame = 0;
+  if (process.stdout.isTTY) {
+    const frames = ["|", "/", "-", "\\"];
+    const timer = setInterval(() => {
+      const elapsed = ((Date.now() - started) / 1000).toFixed(0);
+      process.stdout.write(`\r${frames[frame++ % frames.length]} ${label} (${elapsed}s)`);
+    }, 120);
+    try {
+      const result = await task();
+      clearInterval(timer);
+      process.stdout.write(`\r[+] ${label} completed in ${((Date.now() - started) / 1000).toFixed(1)}s\n`);
+      return result;
+    } catch (error) {
+      clearInterval(timer);
+      process.stdout.write("\n");
+      throw error;
+    }
+  }
+
+  console.log(`Started: ${label}`);
+  try {
+    const result = await task();
+    console.log(`Completed: ${label} (${((Date.now() - started) / 1000).toFixed(1)}s)`);
+    return result;
+  } catch (error) {
+    console.log(`Failed: ${label}`);
+    throw error;
+  }
+}
+
 /**
  * Normalizes a discovered URL and keeps it only if it belongs to a targeted host.
  * @param raw - Absolute URL as found by a provider.
@@ -50,10 +86,13 @@ function normalize(raw: string): string | null {
   }
 }
 
-const { page, getText, close } = await startObscura();
+const { page, getText, close } = await withProgress("Starting browser", () => startObscura());
+progress("Browser ready.");
 try {
   if (SUBDOMAINS) {
-    const hosts = await crtHosts({ rootDomain: ROOT_DOMAIN });
+    const hosts = await withProgress(`Finding subdomains for ${ROOT_DOMAIN}`, () =>
+      crtHosts({ rootDomain: ROOT_DOMAIN }),
+    );
     hosts.forEach((h) => HOSTS.add(h));
     console.log(`crt.sh: ${hosts.size} hostnames`);
   }
@@ -66,17 +105,30 @@ try {
   };
   for (const host of HOSTS) {
     const origin = host === HOST ? ORIGIN : `https://${host}`;
-    try {
-      await page.goto(origin, { waitUntil: "domcontentloaded", timeout: 15_000 });
-    } catch (e) {
-      console.warn(`skipping ${origin}: ${(e as Error).message.split("\n")[0]}`);
-      continue;
-    }
-    sources.sitemaps = sources.sitemaps.concat(await sitemaps({ origin, getText }));
-    sources.feeds = sources.feeds.concat(await feeds({ page, getText }));
+    const opened = await withProgress(`Opening ${origin}`, async () => {
+      try {
+        await page.goto(origin, { waitUntil: "domcontentloaded", timeout: 15_000 });
+        return true;
+      } catch (e) {
+        console.warn(`skipping ${origin}: ${(e as Error).message.split("\n")[0]}`);
+        return false;
+      }
+    });
+    if (!opened) continue;
+    sources.sitemaps = sources.sitemaps.concat(
+      await withProgress(`Reading sitemaps from ${origin}`, () => sitemaps({ origin, getText })),
+    );
+    sources.feeds = sources.feeds.concat(
+      await withProgress(`Reading feeds from ${origin}`, () => feeds({ page, getText })),
+    );
   }
+  progress(`Crawling pages on ${HOST}...`);
   sources.crawl = await crawl({ page, startUrl: BASE, maxPages: CRAWLING_MAX_PAGES });
-  sources.wayback = await wayback({ host: HOST, rootDomain: ROOT_DOMAIN, subdomains: SUBDOMAINS });
+  if (process.stdout.isTTY) process.stdout.write("\n");
+  console.log(`Crawl complete: ${sources.crawl.length} links found.`);
+  sources.wayback = await withProgress("Querying Wayback Machine", () =>
+    wayback({ host: HOST, rootDomain: ROOT_DOMAIN, subdomains: SUBDOMAINS }),
+  );
 
   const all = new Set<string>();
   for (const [name, list] of Object.entries(sources)) {

@@ -1,9 +1,11 @@
 import type { Page } from "playwright-core";
 
-const MAX_PAGES = 500;
+const BAR_WIDTH = 20;
 
 /**
- * Crawls links on the starting host, visiting at most 500 pages.
+ * Crawls links on the starting host, visiting at most `maxPages` pages.
+ * Prints progress as pages scraped / pages to scrape (discovered so far, capped at `maxPages`):
+ * an in-place bar in a terminal, a line every 10 pages otherwise.
  * @param ctx.page - Browser page used to visit links.
  * @param ctx.startUrl - URL to begin crawling from.
  * @param ctx.maxPages - Maximum number of pages to visit; 0 skips crawling.
@@ -11,6 +13,18 @@ const MAX_PAGES = 500;
  */
 export async function crawl(ctx: { page: Page; startUrl: string; maxPages: number }): Promise<string[]> {
   const { page, startUrl, maxPages } = ctx;
+  if (maxPages <= 0) return [];
+
+  const showProgress = (scraped: number, toScrape: number, linksFound: number) => {
+    if (process.stdout.isTTY) {
+      const filled = Math.round((scraped / toScrape) * BAR_WIDTH);
+      const bar = `${"#".repeat(filled)}${"-".repeat(BAR_WIDTH - filled)}`;
+      process.stdout.write(`\rCrawling [${bar}] ${scraped}/${toScrape} pages, ${linksFound} links found`);
+    } else if (scraped % 10 === 0 || scraped === toScrape) {
+      console.log(`Crawling: ${scraped}/${toScrape} pages scraped, ${linksFound} links found`);
+    }
+  };
+
   const start = new URL(startUrl);
   const queue = [start.href];
   const queued = new Set(queue);
@@ -45,10 +59,11 @@ export async function crawl(ctx: { page: Page; startUrl: string; maxPages: numbe
         }
       }
     } catch (e) {
-      console.warn(`crawl skipped ${current}: ${(e as Error).message.split("\n")[0]}`);
+      console.warn(`${process.stdout.isTTY ? "\n" : ""}crawl skipped ${current}: ${(e as Error).message.split("\n")[0]}`);
     }
+    showProgress(visited, Math.min(maxPages, visited + queue.length), urls.size);
   }
 
-  if (queue.length) console.warn(`crawl stopped at ${MAX_PAGES} pages`);
+  if (queue.length) console.warn(`Crawl stopped at ${maxPages} pages`);
   return [...urls];
 }
