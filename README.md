@@ -1,0 +1,86 @@
+# Hosts-scanner
+
+Lists the URLs of a website **without crawling its pages**. It uses the [Obscura](https://github.com/h4ckf0r0day/obscura) headless browser, driven by Playwright over CDP, plus public third-party sources.
+
+## How it works
+
+Each source is a provider, in `providers/`:
+
+| Provider | Type | Source | Notes |
+|---|---|---|---|
+| [`internal/sitemaps.ts`](providers/internal/sitemaps.ts) | internal | `robots.txt` and sitemaps | Follows sitemap indexes and `.xml.gz`, max 200 files |
+| [`internal/feeds.ts`](providers/internal/feeds.ts) | internal | RSS/Atom feeds linked from the home page | Reads `<link rel="alternate">` |
+| [`external/wayback.ts`](providers/external/wayback.ts) | external | Wayback Machine CDX index | Historical URLs; the service is intermittent, so failures return `[]` |
+| [`external/crt.ts`](providers/external/crt.ts) | external | [crt.sh](https://crt.sh) Certificate Transparency logs | Finds subdomains; up to 2 retries |
+
+- **Internal** providers query the target site itself, through Obscura.
+- **External** providers query third-party services.
+
+[`urls.ts`](urls.ts) runs the providers, normalizes the URLs (drops `#fragments`, keeps only targeted hosts), deduplicates and sorts them, and writes `urls.json`.
+
+Shared helpers are in `lib/`:
+- [`obscura.ts`](lib/obscura.ts) spawns Obscura and connects Playwright.
+- [`xml.ts`](lib/xml.ts) extracts values from sitemap and feed XML.
+
+## Requirements
+
+- Node.js 22 or later
+- `bin/obscura.exe`, the Obscura binary (Windows). It is not included in this repository; put your own build there.
+
+## Setup
+
+```
+npm install
+```
+
+## Usage
+
+```
+npm run urls -- [url] [--subdomains]
+```
+
+| Argument | Description |
+|---|---|
+| `url` | Site to scan. Defaults to `https://www.lemonde.fr` |
+| `--subdomains` | Also looks up subdomains on crt.sh, probes each one, and queries Wayback for the whole root domain |
+
+Example:
+
+```
+npm run urls -- https://www.agencesbancaires.fr/ --subdomains
+```
+
+Sample output:
+
+```
+crt.sh: 2 hostnames
+sitemaps: 3167 URLs
+feeds: 0 URLs
+wayback: 1672 URLs
+4798 unique URLs -> urls.json
+```
+
+> On Windows PowerShell, `npm run` may not forward `--subdomains`. Run `node_modules\.bin\tsx urls.ts <url> --subdomains` instead.
+
+## Output
+
+`urls.json` is a sorted JSON array of unique absolute URLs.
+
+## Scripts
+
+| Script | Purpose |
+|---|---|
+| `npm run urls` | Run the URL collector |
+| `npm run typecheck` | Type-check with `tsc` |
+| `npm run docs` | Generate API docs with TypeDoc into `docs/` |
+
+## Adding a provider
+
+1. Create `providers/internal/<name>.ts` or `providers/external/<name>.ts`. Export an async function that returns `string[]`.
+2. Document it with TSDoc.
+3. Import it in `urls.ts`, add its key to `sources`, and call it.
+
+## Notes
+
+- Only collect URLs from sites you are allowed to scan, and respect their terms and `robots.txt`.
+- Sites can have hundreds of thousands of URLs. For example, `www.lemonde.fr` returns over 140,000 from its sitemaps alone.

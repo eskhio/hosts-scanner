@@ -1,0 +1,20 @@
+{
+  "name": "hosts-scanner",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "urls": "tsx urls.ts",
+    "typecheck": "tsc",
+    "docs": "typedoc"
+  },
+  "dependencies": {
+    "playwright-core": "^1.50.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typedoc": "^0.28.20",
+    "typescript": "^5.9.3"
+  }
+}
