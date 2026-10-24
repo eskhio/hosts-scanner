@@ -1,5 +1,5 @@
 {
-  "entryPoints": ["urls.ts", "lib", "providers"],
+  "entryPoints": ["urls.ts", "lib", "helpers", "providers"],
   "entryPointStrategy": "expand",
   "tsconfig": "tsconfig.json",
   "out": "docs"

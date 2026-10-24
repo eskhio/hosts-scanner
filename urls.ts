@@ -2,7 +2,7 @@
 //   internal/ (queried on the site itself): crawl, sitemaps, feeds (RSS/Atom)
 //   external/ (third-party services): wayback (CDX index), crt (subdomains via crt.sh)
 // With --subdomains, hostnames found on crt.sh are probed too.
-// Usage: npm run urls -- [https://www.lemonde.fr] [--subdomains]
+// Usage: npm run urls -- [https://www.lemonde.fr] [--subdomains] [--crawling-max-pages=500]
 import { writeFile } from "node:fs/promises";
 import { startObscura } from "./lib/obscura.ts";
 import { crtHosts } from "./providers/external/crt.ts";
@@ -10,81 +10,18 @@ import { wayback } from "./providers/external/wayback.ts";
 import { feeds } from "./providers/internal/feeds.ts";
 import { sitemaps } from "./providers/internal/sitemaps.ts";
 import { crawl } from "./providers/internal/crawl.ts";
+import { parseArgs } from "./helpers/cli.ts";
+import { progress, withProgress } from "./helpers/progress.ts";
+import { normalizeUrl } from "./helpers/url.ts";
 
-const args = process.argv.slice(2);
-const BASE = args.find((a) => !a.startsWith("--")) ?? "https://www.lemonde.fr";
-const MAX_PAGES_FLAG = /^--crawling[-_]max[-_]pages=/;
-// Without a `--` separator, `npm run` consumes unknown flags and exposes them as npm_config_* variables.
-const SUBDOMAINS = args.includes("--subdomains") || process.env.npm_config_subdomains === "true";
-const CrawlingMaxPagesArg =
-  args.find((a) => MAX_PAGES_FLAG.test(a))?.split("=")[1] ?? process.env.npm_config_crawling_max_pages;
-const CRAWLING_MAX_PAGES = CrawlingMaxPagesArg === undefined ? 500 : Number(CrawlingMaxPagesArg);
-for (const a of args) {
-  if (a.startsWith("--") && a !== "--subdomains" && !MAX_PAGES_FLAG.test(a)) {
-    console.warn(`Unknown option ignored: ${a}`);
-  }
-}
-if (CrawlingMaxPagesArg === "" || !Number.isInteger(CRAWLING_MAX_PAGES) || CRAWLING_MAX_PAGES < 0) {
-  console.error("--crawling-max-pages must be a non-negative integer");
-  process.exit(1);
-}
+const { base: BASE, subdomains: SUBDOMAINS, crawlingMaxPages: CRAWLING_MAX_PAGES } = parseArgs(
+  process.argv.slice(2),
+  process.env,
+);
 const ORIGIN = new URL(BASE).origin;
 const HOST = new URL(BASE).hostname;
 const ROOT_DOMAIN = HOST.replace(/^www\./, "");
 const HOSTS = new Set([HOST]);
-
-function progress(message: string): void {
-  console.log(`\n${message}`);
-}
-
-async function withProgress<T>(label: string, task: () => Promise<T>): Promise<T> {
-  const started = Date.now();
-  let frame = 0;
-  if (process.stdout.isTTY) {
-    const frames = ["|", "/", "-", "\\"];
-    const timer = setInterval(() => {
-      const elapsed = ((Date.now() - started) / 1000).toFixed(0);
-      process.stdout.write(`\r${frames[frame++ % frames.length]} ${label} (${elapsed}s)`);
-    }, 120);
-    try {
-      const result = await task();
-      clearInterval(timer);
-      process.stdout.write(`\r[+] ${label} completed in ${((Date.now() - started) / 1000).toFixed(1)}s\n`);
-      return result;
-    } catch (error) {
-      clearInterval(timer);
-      process.stdout.write("\n");
-      throw error;
-    }
-  }
-
-  console.log(`Started: ${label}`);
-  try {
-    const result = await task();
-    console.log(`Completed: ${label} (${((Date.now() - started) / 1000).toFixed(1)}s)`);
-    return result;
-  } catch (error) {
-    console.log(`Failed: ${label}`);
-    throw error;
-  }
-}
-
-/**
- * Normalizes a discovered URL and keeps it only if it belongs to a targeted host.
- * @param raw - Absolute URL as found by a provider.
- * @returns The URL without its `#fragment`, or null if it is invalid or
- *   its hostname is not in `HOSTS`.
- */
-function normalize(raw: string): string | null {
-  try {
-    const u = new URL(raw);
-    if (!HOSTS.has(u.hostname)) return null;
-    u.hash = "";
-    return u.href;
-  } catch {
-    return null;
-  }
-}
 
 const { page, getText, close } = await withProgress("Starting browser", () => startObscura());
 progress("Browser ready.");
@@ -132,7 +69,7 @@ try {
 
   const all = new Set<string>();
   for (const [name, list] of Object.entries(sources)) {
-    const n = new Set(list.map(normalize).filter((u): u is string => u !== null));
+    const n = new Set(list.map((u) => normalizeUrl(u, HOSTS)).filter((u): u is string => u !== null));
     console.log(`${name}: ${n.size} URLs`);
     n.forEach((u) => all.add(u));
   }
