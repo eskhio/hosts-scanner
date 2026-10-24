@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 import { chromium, type Page } from "playwright-core";
 
 const PORT = 9222;
-const OBSCURA = fileURLToPath(new URL("../bin/obscura.exe", import.meta.url));
+const OBSCURA = fileURLToPath(
+  new URL(`../bin/obscura${process.platform === "win32" ? ".exe" : ""}`, import.meta.url),
+);
 
 /**
  * Fetches a URL from inside the page (same-origin rules apply).

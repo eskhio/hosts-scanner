@@ -25,7 +25,39 @@ Shared helpers are in `lib/`:
 ## Requirements
 
 - Node.js 22 or later
-- `bin/obscura.exe`, the Obscura binary (Windows). It is not included in this repository; put your own build there.
+- The Obscura browser binary for your platform. It is not included in this repository.
+
+### macOS setup
+
+Download the Obscura release matching your Mac:
+
+```sh
+# Apple Silicon (M1/M2/M3/M4)
+curl -LO https://github.com/h4ckf0r0day/obscura/releases/latest/download/obscura-aarch64-macos.tar.gz
+tar -xzf obscura-aarch64-macos.tar.gz
+
+# Intel Macs: use this instead of the Apple Silicon download
+# curl -LO https://github.com/h4ckf0r0day/obscura/releases/latest/download/obscura-x86_64-macos.tar.gz
+# tar -xzf obscura-x86_64-macos.tar.gz
+```
+
+Put the extracted `obscura` and `obscura-worker` files in this project's `bin/` directory, then make them executable if needed:
+
+```sh
+chmod +x bin/obscura bin/obscura-worker
+```
+
+Install the Node.js dependencies with `npm install`, then run the scanner as usual:
+
+```sh
+npm run urls -- https://example.com
+```
+
+On first launch, macOS may block the downloaded binary. If so, allow it in **System Settings > Privacy & Security**, then retry.
+
+### Windows setup
+
+Place `obscura.exe` and `obscura-worker.exe` in `bin/`.
 
 ## Setup
 

@@ -18,6 +18,8 @@
 *.tgz
 
 # Local Obscura binaries
+/bin/obscura
+/bin/obscura-worker
 /bin/obscura.exe
 /bin/obscura-worker.exe
 
