@@ -1,6 +1,6 @@
 # Hosts-scanner
 
-Lists the URLs of a website **without crawling its pages**. It uses the [Obscura](https://github.com/h4ckf0r0day/obscura) headless browser, driven by Playwright over CDP, plus public third-party sources.
+Lists a website's URLs from its pages, sitemaps, feeds, and public third-party sources. It uses the [Obscura](https://github.com/h4ckf0r0day/obscura) headless browser, driven by Playwright over CDP.
 
 ## How it works
 
@@ -8,6 +8,7 @@ Each source is a provider, in `providers/`:
 
 | Provider | Type | Source | Notes |
 |---|---|---|---|
+| [`internal/crawl.ts`](providers/internal/crawl.ts) | internal | Links on visited pages | Follows links on the starting host, capped at 500 pages by default (`--crawling-max-pages`); reports progress |
 | [`internal/sitemaps.ts`](providers/internal/sitemaps.ts) | internal | `robots.txt` and sitemaps | Follows sitemap indexes and `.xml.gz`, max 200 files |
 | [`internal/feeds.ts`](providers/internal/feeds.ts) | internal | RSS/Atom feeds linked from the home page | Reads `<link rel="alternate">` |
 | [`external/wayback.ts`](providers/external/wayback.ts) | external | Wayback Machine CDX index | Historical URLs; the service is intermittent, so failures return `[]` |
@@ -68,18 +69,19 @@ npm install
 ## Usage
 
 ```
-npm run urls -- [url] [--subdomains]
+npm run urls -- [url] [--subdomains] [--crawling-max-pages=N]
 ```
 
 | Argument | Description |
 |---|---|
 | `url` | Site to scan. Defaults to `https://www.lemonde.fr` |
 | `--subdomains` | Also looks up subdomains on crt.sh, probes each one, and queries Wayback for the whole root domain |
+| `--crawling-max-pages=N` | Maximum pages the crawler visits. Defaults to `500`; use `0` to skip crawling. `--crawling_max_pages` also works |
 
 Example:
 
 ```
-npm run urls -- https://www.agencesbancaires.fr/ --subdomains
+npm run urls -- https://www.agencesbancaires.fr/ --subdomains --crawling-max-pages=50
 ```
 
 Sample output:

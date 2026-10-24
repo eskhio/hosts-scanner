@@ -1,5 +1,5 @@
-// Lists a site's URLs without following page links. Sources live in providers/:
-//   internal/ (queried on the site itself): sitemaps (robots.txt + sitemaps), feeds (RSS/Atom)
+// Lists a site's URLs. Sources live in providers/:
+//   internal/ (queried on the site itself): crawl, sitemaps, feeds (RSS/Atom)
 //   external/ (third-party services): wayback (CDX index), crt (subdomains via crt.sh)
 // With --subdomains, hostnames found on crt.sh are probed too.
 // Usage: npm run urls -- [https://www.lemonde.fr] [--subdomains]
@@ -9,10 +9,25 @@ import { crtHosts } from "./providers/external/crt.ts";
 import { wayback } from "./providers/external/wayback.ts";
 import { feeds } from "./providers/internal/feeds.ts";
 import { sitemaps } from "./providers/internal/sitemaps.ts";
+import { crawl } from "./providers/internal/crawl.ts";
 
 const args = process.argv.slice(2);
 const BASE = args.find((a) => !a.startsWith("--")) ?? "https://www.lemonde.fr";
-const SUBDOMAINS = args.includes("--subdomains");
+const MAX_PAGES_FLAG = /^--crawling[-_]max[-_]pages=/;
+// Without a `--` separator, `npm run` consumes unknown flags and exposes them as npm_config_* variables.
+const SUBDOMAINS = args.includes("--subdomains") || process.env.npm_config_subdomains === "true";
+const CrawlingMaxPagesArg =
+  args.find((a) => MAX_PAGES_FLAG.test(a))?.split("=")[1] ?? process.env.npm_config_crawling_max_pages;
+const CRAWLING_MAX_PAGES = CrawlingMaxPagesArg === undefined ? 500 : Number(CrawlingMaxPagesArg);
+for (const a of args) {
+  if (a.startsWith("--") && a !== "--subdomains" && !MAX_PAGES_FLAG.test(a)) {
+    console.warn(`Unknown option ignored: ${a}`);
+  }
+}
+if (CrawlingMaxPagesArg === "" || !Number.isInteger(CRAWLING_MAX_PAGES) || CRAWLING_MAX_PAGES < 0) {
+  console.error("--crawling-max-pages must be a non-negative integer");
+  process.exit(1);
+}
 const ORIGIN = new URL(BASE).origin;
 const HOST = new URL(BASE).hostname;
 const ROOT_DOMAIN = HOST.replace(/^www\./, "");
@@ -43,7 +58,12 @@ try {
     console.log(`crt.sh: ${hosts.size} hostnames`);
   }
 
-  const sources: Record<"sitemaps" | "feeds" | "wayback", string[]> = { sitemaps: [], feeds: [], wayback: [] };
+  const sources: Record<"crawl" | "sitemaps" | "feeds" | "wayback", string[]> = {
+    crawl: [],
+    sitemaps: [],
+    feeds: [],
+    wayback: [],
+  };
   for (const host of HOSTS) {
     const origin = host === HOST ? ORIGIN : `https://${host}`;
     try {
@@ -55,6 +75,7 @@ try {
     sources.sitemaps = sources.sitemaps.concat(await sitemaps({ origin, getText }));
     sources.feeds = sources.feeds.concat(await feeds({ page, getText }));
   }
+  sources.crawl = await crawl({ page, startUrl: BASE, maxPages: CRAWLING_MAX_PAGES });
   sources.wayback = await wayback({ host: HOST, rootDomain: ROOT_DOMAIN, subdomains: SUBDOMAINS });
 
   const all = new Set<string>();
