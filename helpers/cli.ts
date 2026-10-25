@@ -5,9 +5,9 @@ const MAX_PAGES_FLAG = /^--crawling[-_]max[-_]pages=/;
 /** Options read from the command line. */
 export interface CliOptions {
   /** Site to scan. */
-  base: string;
+  baseURL: string;
   /** Whether to also look up subdomains. */
-  subdomains: boolean;
+  subdomainsIncluded: boolean;
   /** Maximum pages the crawler visits; 0 skips crawling. */
   crawlingMaxPages: number;
 }
@@ -22,8 +22,8 @@ export interface CliOptions {
  * @returns The parsed options.
  */
 export function parseArgs(argv: string[], env: NodeJS.ProcessEnv): CliOptions {
-  const base = argv.find((a) => !a.startsWith("--")) ?? "https://www.lemonde.fr";
-  const subdomains = argv.includes("--subdomains") || env.npm_config_subdomains === "true";
+  const baseURL = argv.find((a) => !a.startsWith("--")) ?? "https://www.lemonde.fr";
+  const subdomainsIncluded = argv.includes("--subdomains") || env.npm_config_subdomains === "true";
   const maxPagesArg = argv.find((a) => MAX_PAGES_FLAG.test(a))?.split("=")[1] ?? env.npm_config_crawling_max_pages;
   const crawlingMaxPages = maxPagesArg === undefined ? 500 : Number(maxPagesArg);
 
@@ -36,5 +36,5 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv): CliOptions {
     console.error(color.red("--crawling-max-pages must be a non-negative integer"));
     process.exit(1);
   }
-  return { base, subdomains, crawlingMaxPages };
+  return { baseURL, subdomainsIncluded, crawlingMaxPages };
 }

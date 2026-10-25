@@ -10,5 +10,5 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"]
   },
-  "include": ["urls.ts", "lib", "helpers", "providers"]
+  "include": ["host-scanner.ts", "lib", "helpers", "providers"]
 }

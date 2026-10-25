@@ -17,7 +17,7 @@ Each source is a provider, in `providers/`:
 - **Internal** providers query the target site itself, through Obscura.
 - **External** providers query third-party services.
 
-[`urls.ts`](urls.ts) runs the providers, normalizes the URLs (drops `#fragments`, keeps only targeted hosts), deduplicates and sorts them, and writes `urls.json`.
+[`host-scanner.ts`](host-scanner.ts) runs the providers, normalizes the URLs (drops `#fragments`, keeps only targeted hosts), deduplicates and sorts them, and writes `urls.json`.
 
 Shared helpers are in `lib/`:
 - [`obscura.ts`](lib/obscura.ts) spawns Obscura and connects Playwright.
@@ -51,7 +51,7 @@ chmod +x bin/obscura bin/obscura-worker
 Install the Node.js dependencies with `npm install`, then run the scanner as usual:
 
 ```sh
-npm run urls -- https://example.com
+npm run scanUrl https://example.com
 ```
 
 On first launch, macOS may block the downloaded binary. If so, allow it in **System Settings > Privacy & Security**, then retry.
@@ -69,7 +69,7 @@ npm install
 ## Usage
 
 ```
-npm run urls -- [url] [--subdomains] [--crawling-max-pages=N]
+npm run scanUrl [url] [--subdomains] [--crawling-max-pages=N]
 ```
 
 | Argument | Description |
@@ -81,7 +81,7 @@ npm run urls -- [url] [--subdomains] [--crawling-max-pages=N]
 Example:
 
 ```
-npm run urls -- https://www.agencesbancaires.fr/ --subdomains --crawling-max-pages=50
+npm run scanUrl https://www.agencesbancaires.fr/ --subdomains --crawling-max-pages=50
 ```
 
 Sample output:
@@ -94,7 +94,7 @@ wayback: 1672 URLs
 4798 unique URLs -> urls.json
 ```
 
-> On Windows PowerShell, `npm run` may not forward `--subdomains`. Run `node_modules\.bin\tsx urls.ts <url> --subdomains` instead.
+> On Windows PowerShell, `npm run` may not forward `--subdomains`. Run `node_modules\.bin\tsx host-scanner.ts <url> --subdomains` instead.
 
 ## Output
 
@@ -104,7 +104,7 @@ wayback: 1672 URLs
 
 | Script | Purpose |
 |---|---|
-| `npm run urls` | Run the URL collector |
+| `npm run scanUrl` | Run the URL collector |
 | `npm run typecheck` | Type-check with `tsc` |
 | `npm run docs` | Generate API docs with TypeDoc into `docs/` |
 
@@ -112,7 +112,7 @@ wayback: 1672 URLs
 
 1. Create `providers/internal/<name>.ts` or `providers/external/<name>.ts`. Export an async function that returns `string[]`.
 2. Document it with TSDoc.
-3. Import it in `urls.ts`, add its key to `sources`, and call it.
+3. Import it in `host-scanner.ts`, add its key to `sources`, and call it.
 
 ## Notes
 

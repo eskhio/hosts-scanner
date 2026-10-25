@@ -1,8 +1,3 @@
-// Lists a site's URLs. Sources live in providers/:
-//   internal/ (queried on the site itself): crawl, sitemaps, feeds (RSS/Atom)
-//   external/ (third-party services): wayback (CDX index), crt (subdomains via crt.sh)
-// With --subdomains, hostnames found on crt.sh are probed too.
-// Usage: npm run urls -- [https://www.lemonde.fr] [--subdomains] [--crawling-max-pages=500]
 import { writeFile } from "node:fs/promises";
 import { startObscura, type GetText } from "./lib/obscura.ts";
 import { crtHosts } from "./providers/external/crt.ts";
@@ -17,14 +12,6 @@ import { normalizeUrl } from "./helpers/url.ts";
 import type { Page } from "playwright-core";
 
 type Sources = Record<"crawl" | "sitemaps" | "feeds" | "wayback", string[]>;
-
-/**
- * Creates the result structure used to collect URLs from each provider.
- * @returns Empty URL lists keyed by provider name.
- */
-function getSources(): Sources {
-  return { crawl: [], sitemaps: [], feeds: [], wayback: [] };
-}
 
 /**
  * Extracts the origin and host information needed to scan a starting URL.
@@ -209,7 +196,7 @@ async function saveUrls(urls: string[]): Promise<void> {
  * Starts one browser session, discovers enabled hosts, gathers URLs from each
  * provider, and closes the session even if collection or writing fails.
  */
-async function run(): Promise<void> {
+async function scanHost(): Promise<void> {
   // Argument parsing and initial setup
   const { baseURL, subdomainsIncluded, crawlingMaxPages } = parseArgs(process.argv.slice(2), process.env);
   const { origin, host, rootDomain } = getHostUrlDetails(baseURL);
@@ -219,7 +206,6 @@ async function run(): Promise<void> {
 
   try {
     const hosts = await getHostsSubdomains(host, rootDomain, subdomainsIncluded);
-    // Collect sources from sitemaps and feeds
     Object.assign(
       sources,
       await collectUrlsFromHost(hosts, host, origin, session.page, session.getText),
@@ -234,4 +220,4 @@ async function run(): Promise<void> {
   }
 }
 
-await run();
+await scanHost();
