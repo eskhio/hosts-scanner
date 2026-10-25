@@ -1,4 +1,5 @@
 import type { Page } from "playwright-core";
+import { color } from "../../helpers/colors.ts";
 
 const BAR_WIDTH = 20;
 
@@ -18,8 +19,10 @@ export async function crawl(ctx: { page: Page; startUrl: string; maxPages: numbe
   const showProgress = (scraped: number, toScrape: number, linksFound: number) => {
     if (process.stdout.isTTY) {
       const filled = Math.round((scraped / toScrape) * BAR_WIDTH);
-      const bar = `${"#".repeat(filled)}${"-".repeat(BAR_WIDTH - filled)}`;
-      process.stdout.write(`\rCrawling [${bar}] ${scraped}/${toScrape} pages, ${linksFound} links found`);
+      const bar = `${color.green("#".repeat(filled))}${color.dim("-".repeat(BAR_WIDTH - filled))}`;
+      process.stdout.write(
+        `\r${color.cyan("Crawling")} [${bar}] ${color.bold(`${scraped}/${toScrape}`)} pages, ${color.green(String(linksFound))} links found`,
+      );
     } else if (scraped % 10 === 0 || scraped === toScrape) {
       console.log(`Crawling: ${scraped}/${toScrape} pages scraped, ${linksFound} links found`);
     }
@@ -59,11 +62,13 @@ export async function crawl(ctx: { page: Page; startUrl: string; maxPages: numbe
         }
       }
     } catch (e) {
-      console.warn(`${process.stdout.isTTY ? "\n" : ""}crawl skipped ${current}: ${(e as Error).message.split("\n")[0]}`);
+      console.warn(
+        `${process.stdout.isTTY ? "\n" : ""}${color.yellow(`Crawl skipped ${current}: ${(e as Error).message.split("\n")[0]}`)}`,
+      );
     }
     showProgress(visited, Math.min(maxPages, visited + queue.length), urls.size);
   }
 
-  if (queue.length) console.warn(`Crawl stopped at ${maxPages} pages`);
+  if (queue.length) console.warn(color.yellow(`\nCrawl stopped at ${maxPages} pages`));
   return [...urls];
 }

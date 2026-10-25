@@ -11,6 +11,7 @@ import { feeds } from "./providers/internal/feeds.ts";
 import { sitemaps } from "./providers/internal/sitemaps.ts";
 import { crawl } from "./providers/internal/crawl.ts";
 import { parseArgs } from "./helpers/cli.ts";
+import { color } from "./helpers/colors.ts";
 import { progress, withProgress } from "./helpers/progress.ts";
 import { normalizeUrl } from "./helpers/url.ts";
 
@@ -31,7 +32,7 @@ try {
       crtHosts({ rootDomain: ROOT_DOMAIN }),
     );
     hosts.forEach((h) => HOSTS.add(h));
-    console.log(`crt.sh: ${hosts.size} hostnames`);
+    console.log(`${color.green("Found")} ${color.bold(String(hosts.size))} hostnames`);
   }
 
   const sources: Record<"crawl" | "sitemaps" | "feeds" | "wayback", string[]> = {
@@ -47,7 +48,7 @@ try {
         await page.goto(origin, { waitUntil: "domcontentloaded", timeout: 15_000 });
         return true;
       } catch (e) {
-        console.warn(`skipping ${origin}: ${(e as Error).message.split("\n")[0]}`);
+        console.warn(color.yellow(`skipping ${origin}: ${(e as Error).message.split("\n")[0]}`));
         return false;
       }
     });
@@ -62,7 +63,7 @@ try {
   progress(`Crawling pages on ${HOST}...`);
   sources.crawl = await crawl({ page, startUrl: BASE, maxPages: CRAWLING_MAX_PAGES });
   if (process.stdout.isTTY) process.stdout.write("\n");
-  console.log(`Crawl complete: ${sources.crawl.length} links found.`);
+    console.log(`${color.green("Crawl complete:")} ${sources.crawl.length} links found.`);
   sources.wayback = await withProgress("Querying Wayback Machine", () =>
     wayback({ host: HOST, rootDomain: ROOT_DOMAIN, subdomains: SUBDOMAINS }),
   );
@@ -70,12 +71,12 @@ try {
   const all = new Set<string>();
   for (const [name, list] of Object.entries(sources)) {
     const n = new Set(list.map((u) => normalizeUrl(u, HOSTS)).filter((u): u is string => u !== null));
-    console.log(`${name}: ${n.size} URLs`);
+    console.log(`${color.cyan(name)}: ${color.bold(String(n.size))} URLs`);
     n.forEach((u) => all.add(u));
   }
   const result = [...all].sort();
   await writeFile("urls.json", JSON.stringify(result, null, 2));
-  console.log(`${result.length} unique URLs -> urls.json`);
+  console.log(`\n${color.bold(color.green(`${result.length} unique URLs`))} -> urls.json`);
 } finally {
   await close();
 }

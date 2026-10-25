@@ -1,3 +1,5 @@
+import { color } from "../../helpers/colors.ts";
+
 const RETRIES = 2;
 
 /**
@@ -22,10 +24,12 @@ export async function crtHosts(opts: { rootDomain: string }): Promise<Set<string
           .filter((h) => h && !h.includes("*") && (h === rootDomain || h.endsWith(`.${rootDomain}`))),
       );
     } catch (e) {
-      console.warn(`crt.sh attempt ${attempt + 1}/${RETRIES + 1} failed: ${(e as Error).message}`);
+      console.warn(color.red(`\n\t => crt.sh attempt ${attempt + 1}/${RETRIES + 1} failed: ${(e as Error).message}`));
       if (attempt < RETRIES) await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
     }
   }
-  console.warn("crt.sh unavailable; continuing without subdomains");
+  console.log("-----------/!\\--------------")
+  console.warn(color.red("crt.sh unavailable; continuing without subdomains"));
+  console.log("-----------/!\\--------------")
   return new Set();
 }

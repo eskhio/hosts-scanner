@@ -1,9 +1,11 @@
+import { color } from "./colors.ts";
+
 /**
  * Prints a stage message on its own line, preceded by a blank line.
  * @param message - Text to display.
  */
 export function progress(message: string): void {
-  console.log(`\n${message}`);
+  console.log(`\n${color.bold(color.cyan(message))}`);
 }
 
 /**
@@ -20,12 +22,14 @@ export async function withProgress<T>(label: string, task: () => Promise<T>): Pr
     const frames = ["|", "/", "-", "\\"];
     const timer = setInterval(() => {
       const elapsed = ((Date.now() - started) / 1000).toFixed(0);
-      process.stdout.write(`\r${frames[frame++ % frames.length]} ${label} (${elapsed}s)`);
+      process.stdout.write(`\r${color.cyan(frames[frame++ % frames.length])} ${label} ${color.dim(`(${elapsed}s)`)}`);
     }, 120);
     try {
       const result = await task();
       clearInterval(timer);
-      process.stdout.write(`\r[+] ${label} completed in ${((Date.now() - started) / 1000).toFixed(1)}s\n`);
+      process.stdout.write(
+        `\r${color.green("[+]")} ${label} ${color.dim(`completed in ${((Date.now() - started) / 1000).toFixed(1)}s`)}\n`,
+      );
       return result;
     } catch (error) {
       clearInterval(timer);
@@ -34,13 +38,13 @@ export async function withProgress<T>(label: string, task: () => Promise<T>): Pr
     }
   }
 
-  console.log(`Started: ${label}`);
+  console.log(`${color.cyan("Started:")} ${label}`);
   try {
     const result = await task();
-    console.log(`Completed: ${label} (${((Date.now() - started) / 1000).toFixed(1)}s)`);
+    console.log(`${color.green("Completed:")} ${label} ${color.dim(`(${((Date.now() - started) / 1000).toFixed(1)}s)`)}`);
     return result;
   } catch (error) {
-    console.log(`Failed: ${label}`);
+    console.log(`${color.red("Failed:")} ${label}`);
     throw error;
   }
 }

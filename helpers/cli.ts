@@ -1,3 +1,5 @@
+import { color } from "./colors.ts";
+
 const MAX_PAGES_FLAG = /^--crawling[-_]max[-_]pages=/;
 
 /** Options read from the command line. */
@@ -27,11 +29,11 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv): CliOptions {
 
   for (const a of argv) {
     if (a.startsWith("--") && a !== "--subdomains" && !MAX_PAGES_FLAG.test(a)) {
-      console.warn(`Unknown option ignored: ${a}`);
+      console.warn(color.yellow(`Unknown option ignored: ${a}`));
     }
   }
   if (maxPagesArg === "" || !Number.isInteger(crawlingMaxPages) || crawlingMaxPages < 0) {
-    console.error("--crawling-max-pages must be a non-negative integer");
+    console.error(color.red("--crawling-max-pages must be a non-negative integer"));
     process.exit(1);
   }
   return { base, subdomains, crawlingMaxPages };
