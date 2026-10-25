@@ -17,7 +17,7 @@ Each source is a provider, in `providers/`:
 - **Internal** providers query the target site itself, through Obscura.
 - **External** providers query third-party services.
 
-[`host-scanner.ts`](host-scanner.ts) runs the providers, normalizes the URLs (drops `#fragments`, keeps only targeted hosts), deduplicates and sorts them, and writes `urls.json`.
+[`host-scanner.ts`](host-scanner.ts) parses command-line arguments and starts the scan. [`scanner.ts`](scanner.ts) runs the providers, normalizes the URLs (drops `#fragments`, keeps only targeted hosts), deduplicates and sorts them, and writes `urls.json`.
 
 Shared helpers are in `lib/`:
 - [`obscura.ts`](lib/obscura.ts) spawns Obscura and connects Playwright.
@@ -105,6 +105,7 @@ wayback: 1672 URLs
 | Script | Purpose |
 |---|---|
 | `npm run scanUrl` | Run the URL collector |
+| `npm test` | Run unit tests |
 | `npm run typecheck` | Type-check with `tsc` |
 | `npm run docs` | Generate API docs with TypeDoc into `docs/` |
 
@@ -112,7 +113,7 @@ wayback: 1672 URLs
 
 1. Create `providers/internal/<name>.ts` or `providers/external/<name>.ts`. Export an async function that returns `string[]`.
 2. Document it with TSDoc.
-3. Import it in `host-scanner.ts`, add its key to `sources`, and call it.
+3. Import it in `scanner.ts`, add its key to `sources`, and call it.
 
 ## Notes
 

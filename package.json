@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "scanUrl": "tsx host-scanner.ts",
+    "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc",
     "docs": "typedoc"
   },

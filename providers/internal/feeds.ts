@@ -1,5 +1,5 @@
-import type { Page } from "playwright-core";
 import type { GetText } from "../../lib/obscura.ts";
+import type { BrowserPage } from "../../lib/browser-page.ts";
 import { locs } from "../../lib/xml.ts";
 
 /**
@@ -10,7 +10,7 @@ import { locs } from "../../lib/xml.ts";
  * @param ctx.getText - Page-based fetch helper.
  * @returns Article URLs; may contain duplicates, including the feed's own site link.
  */
-export async function feeds(ctx: { page: Page; getText: GetText }): Promise<string[]> {
+export async function feeds(ctx: { page: BrowserPage; getText: GetText }): Promise<string[]> {
   const { page, getText } = ctx;
   const feedLinks = await page.evaluate(() =>
     [...document.querySelectorAll<HTMLLinkElement>('link[rel="alternate"][type*="rss"], link[rel="alternate"][type*="atom"]')].map((l) => l.href),

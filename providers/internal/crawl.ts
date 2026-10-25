@@ -1,5 +1,5 @@
-import type { Page } from "playwright-core";
 import { color } from "../../helpers/colors.ts";
+import type { BrowserPage } from "../../lib/browser-page.ts";
 
 const BAR_WIDTH = 20;
 
@@ -12,7 +12,7 @@ const BAR_WIDTH = 20;
  * @param ctx.maxPages - Maximum number of pages to visit; 0 skips crawling.
  * @returns Same-host links found on visited pages, including pages not visited due to the cap.
  */
-export async function crawl(ctx: { page: Page; startUrl: string; maxPages: number }): Promise<string[]> {
+export async function crawl(ctx: { page: BrowserPage; startUrl: string; maxPages: number }): Promise<string[]> {
   const { page, startUrl, maxPages } = ctx;
   if (maxPages <= 0) return [];
 

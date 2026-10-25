@@ -58,7 +58,7 @@
 <li><strong>Internal</strong> providers query the target site itself, through Obscura.</li>
 <li><strong>External</strong> providers query third-party services.</li>
 </ul>
-<p><a href="modules/host-scanner.html"><code>host-scanner.ts</code></a> runs the providers, normalizes the URLs (drops <code>#fragments</code>, keeps only targeted hosts), deduplicates and sorts them, and writes <code>urls.json</code>.</p>
+<p><a href="modules/host-scanner.html"><code>host-scanner.ts</code></a> parses command-line arguments and starts the scan. <a href="modules/scanner.html"><code>scanner.ts</code></a> runs the providers, normalizes the URLs (drops <code>#fragments</code>, keeps only targeted hosts), deduplicates and sorts them, and writes <code>urls.json</code>.</p>
 <p>Shared helpers are in <code>lib/</code>:</p>
 <ul>
 <li><a href="modules/lib_obscura.html"><code>obscura.ts</code></a> spawns Obscura and connects Playwright.</li>
@@ -142,6 +142,10 @@
 <td>Run the URL collector</td>
 </tr>
 <tr>
+<td><code>npm test</code></td>
+<td>Run unit tests</td>
+</tr>
+<tr>
 <td><code>npm run typecheck</code></td>
 <td>Type-check with <code>tsc</code></td>
 </tr>
@@ -155,7 +159,7 @@
 <ol>
 <li>Create <code>providers/internal/&lt;name&gt;.ts</code> or <code>providers/external/&lt;name&gt;.ts</code>. Export an async function that returns <code>string[]</code>.</li>
 <li>Document it with TSDoc.</li>
-<li>Import it in <code>host-scanner.ts</code>, add its key to <code>sources</code>, and call it.</li>
+<li>Import it in <code>scanner.ts</code>, add its key to <code>sources</code>, and call it.</li>
 </ol>
 <h2 id="notes" class="tsd-anchor-link">Notes<a href="#notes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
